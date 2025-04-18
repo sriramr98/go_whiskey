@@ -1,8 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/http"
+
 	whiskey2 "github.com/sriramr98/whiskey"
 )
 
@@ -14,44 +15,28 @@ type BodyType struct {
 func main() {
 	whiskey := whiskey2.New()
 
-	whiskey.GET("/hello", func(req whiskey2.HttpRequest, resp *whiskey2.HttpResponse) {
+	whiskey.GET("/hello", func(ctx whiskey2.Context) error {
 		fmt.Println("Inside GET handler")
-		fmt.Println(req)
 
-		resp.SetHeader("Content-Type", "application/json")
-		resp.Send([]byte("{\"message\": \"Hello, World!\"}"))
+		ctx.SetHeader("CustomHeader", "CustomValue")
+		ctx.Bytes(200, whiskey2.MimeTypeJSON, []byte("Hello, World!"))
+		return nil
 	})
 
-	whiskey.POST("/hello", func(req whiskey2.HttpRequest, resp *whiskey2.HttpResponse) {
+	whiskey.POST("/hello", func(ctx whiskey2.Context) error {
 		fmt.Println("Inside POST handler")
-		fmt.Println(req)
 
 		var body BodyType
-		err := json.Unmarshal(req.Body, &body)
+		err := ctx.BindBody(&body)
+
 		if err != nil {
-			fmt.Println(err)
-			fmt.Println("Error unmarshalling JSON:", err)
-			resp.SetHeader("Content-Type", "application/json")
-			resp.Send([]byte("{\"error\": \"Invalid JSON\"}"))
-			return
+			return err
 		}
 
 		fmt.Printf("Received body: %+v\n", body)
+		ctx.Json(http.StatusOK, body)
 
-		response := map[string]string{
-			"key1": body.Key1,
-			"key2": body.Key2,
-		}
-		respBytes, err := json.Marshal(response)
-		if err != nil {
-			fmt.Println("Error marshalling JSON:", err)
-			resp.SetHeader("Content-Type", "application/json")
-			resp.Send([]byte("{\"error\": \"Internal Server Error\"}"))
-			return
-		}
-
-		resp.SetHeader("Content-Type", "application/json")
-		resp.Send(respBytes)
+		return nil
 	})
 
 	whiskey.Run(whiskey2.RunOpts{

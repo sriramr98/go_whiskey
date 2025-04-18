@@ -24,6 +24,8 @@ type Context interface {
 	GetQueryParams() map[string]string // The function will return all the query parameters
 	GetPathParams() map[string]string  // The function will return all the path parameters
 	GetHeaders() map[string]string     // The function will return all the headers
+
+	SetHeader(key string, value string) // The function will set the header for the response.
 }
 
 type RequestContext struct {
@@ -129,4 +131,8 @@ func (r RequestContext) Bytes(statusCode int, contentType string, data []byte) e
 
 	r.response.Send(data)
 	return nil
+}
+
+func (r RequestContext) SetHeader(key string, value string) {
+	r.response.SetHeader(key, value)
 }

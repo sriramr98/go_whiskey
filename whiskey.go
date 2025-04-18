@@ -63,6 +63,8 @@ func (w Whiskey) Run(opts RunOpts) {
 	}
 	defer ln.Close()
 
+	fmt.Printf("Starting server on %s:%d\n", opts.Addr, opts.Port)
+
 	for {
 		// This blocks until a connection is accepted
 		conn, err := ln.Accept()
@@ -107,10 +109,12 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	// Default response type of text/plain unless overriden in the handler
 	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
 	// Call the handler
-	handler(RequestContext{
+	err = handler(RequestContext{
 		request:  req,
 		response: resp,
 	})
+
+	//TODO: Handle error
 
 	w.writeResponse(resp, conn)
 }
