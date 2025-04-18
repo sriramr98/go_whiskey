@@ -26,16 +26,9 @@ type Context interface {
 	GetHeaders() map[string]string     // The function will return all the headers
 }
 
-type Route struct {
-	Path        string
-	Method      string
-	Handler     func(Context) error
-	Middlewares []func(Context) error
-}
-
 type RequestContext struct {
 	*DataStore //This is used as temporary storage for the request. It is not persisted across requests, but persisted across middlewares in a single request
-	request    *HttpRequest
+	request    HttpRequest
 	response   *HttpResponse
 }
 

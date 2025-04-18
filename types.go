@@ -31,4 +31,4 @@ func (resp *HttpResponse) Send(body []byte) {
 	resp.body = body
 }
 
-type HttpHandler func(HttpRequest, *HttpResponse)
+type HttpHandler func(ctx Context) error

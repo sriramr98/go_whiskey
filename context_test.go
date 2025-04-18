@@ -47,7 +47,7 @@ func TestContextBindBody(t *testing.T) {
 			}
 
 			context := RequestContext{
-				request: &req,
+				request: req,
 			}
 			err := context.BindBody(&body)
 			if tc.expectedErr == "" && err != nil {
@@ -120,7 +120,7 @@ func TestContextBindQuery(t *testing.T) {
 			}
 
 			context := RequestContext{
-				request: &req,
+				request: req,
 			}
 			var query QueryType
 			err := context.BindQuery(&query)
@@ -203,7 +203,7 @@ func TestContextBindPath(t *testing.T) {
 			}
 
 			context := RequestContext{
-				request: &req,
+				request: req,
 			}
 			var path PathType
 			err := context.BindPath(&path)
@@ -286,7 +286,7 @@ func TestContextBindHeader(t *testing.T) {
 			}
 
 			context := RequestContext{
-				request: &req,
+				request: req,
 			}
 			var header HeaderType
 			err := context.BindHeader(&header)
@@ -336,6 +336,11 @@ func TestResponseJson(t *testing.T) {
 			statusCode:  http.StatusOK,
 			expectedErr: "json: unsupported type: chan int",
 		},
+		{
+			name:       "No status code provided",
+			data:       responseData{Key1: "value1", Key2: 42},
+			statusCode: 0,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -356,6 +361,17 @@ func TestResponseJson(t *testing.T) {
 				}
 				if !bytes.Equal(ctx.response.body, expectedBody) {
 					t.Fatalf("expected body %s, got %s", string(expectedBody), string(ctx.response.body))
+				}
+
+				if ctx.response.headers[HeaderContentType] != MimeTypeJSON {
+					t.Fatalf("expected content type %s, got %s", MimeTypeJSON, ctx.response.headers[HeaderContentType])
+				}
+
+				if tc.statusCode == 0 {
+					tc.statusCode = http.StatusOK
+				}
+				if ctx.response.statusCode != tc.statusCode {
+					t.Fatalf("expected status code %d, got %d", tc.statusCode, ctx.response.statusCode)
 				}
 			} else {
 				if err == nil || err.Error() != tc.expectedErr {
@@ -398,6 +414,12 @@ func TestResponseBytes(t *testing.T) {
 			contentType: MimeTypeText,
 			statusCode:  http.StatusOK,
 		},
+		{
+			name:        "StatusCode Not Provided",
+			data:        []byte("Hello, World!"),
+			contentType: MimeTypeText,
+			statusCode:  0,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -417,6 +439,12 @@ func TestResponseBytes(t *testing.T) {
 				}
 				if !bytes.Equal(ctx.response.body, tc.data) {
 					t.Fatalf("expected body %s, got %s", string(tc.data), string(ctx.response.body))
+				}
+				if tc.statusCode == 0 {
+					tc.statusCode = http.StatusOK
+				}
+				if ctx.response.statusCode != tc.statusCode {
+					t.Fatalf("expected status code %d, got %d", tc.statusCode, ctx.response.statusCode)
 				}
 			} else {
 				if err == nil || err.Error() != tc.expectedErr {
@@ -472,6 +500,16 @@ func TestResponseString(t *testing.T) {
 				if string(ctx.response.body) != tc.data {
 					t.Fatalf("expected body %s, got %s", tc.data, string(ctx.response.body))
 				}
+
+				if ctx.response.headers[HeaderContentType] != MimeTypeText {
+					t.Fatalf("expected content type %s, got %s", MimeTypeText, ctx.response.headers[HeaderContentType])
+				}
+				if tc.statusCode == 0 {
+					tc.statusCode = http.StatusOK
+				}
+				if ctx.response.statusCode != tc.statusCode {
+					t.Fatalf("expected status code %d, got %d", tc.statusCode, ctx.response.statusCode)
+				}
 			} else {
 				if err == nil || err.Error() != tc.expectedErr {
 					t.Fatalf("expected error %v, got %v", tc.expectedErr, err)
@@ -526,6 +564,15 @@ func TestResponseHtml(t *testing.T) {
 				if string(ctx.response.body) != tc.data {
 					t.Fatalf("expected body %s, got %s", tc.data, string(ctx.response.body))
 				}
+				if ctx.response.headers[HeaderContentType] != MimeTypeHTML {
+					t.Fatalf("expected content type %s, got %s", MimeTypeHTML, ctx.response.headers[HeaderContentType])
+				}
+				if tc.statusCode == 0 {
+					tc.statusCode = http.StatusOK
+				}
+				if ctx.response.statusCode != tc.statusCode {
+					t.Fatalf("expected status code %d, got %d", tc.statusCode, ctx.response.statusCode)
+				}
 			} else {
 				if err == nil || err.Error() != tc.expectedErr {
 					t.Fatalf("expected error %v, got %v", tc.expectedErr, err)
@@ -543,7 +590,7 @@ func TestGetQueryParam(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	value, exists := ctx.GetQueryParam("key1")
@@ -563,7 +610,7 @@ func TestGetQueryParam_ErrorCases(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	_, exists := ctx.GetQueryParam("nonexistent")
@@ -580,7 +627,7 @@ func TestGetPathParam(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	value, exists := ctx.GetPathParam("key1")
@@ -600,7 +647,7 @@ func TestGetPathParam_ErrorCases(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	_, exists := ctx.GetPathParam("nonexistent")
@@ -617,7 +664,7 @@ func TestGetHeader(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	value, exists := ctx.GetHeader("key1")
@@ -637,7 +684,7 @@ func TestGetHeader_ErrorCases(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	_, exists := ctx.GetHeader("nonexistent")
@@ -655,7 +702,7 @@ func TestGetQueryParams(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	params := ctx.GetQueryParams()
@@ -673,7 +720,7 @@ func TestGetPathParams(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	params := ctx.GetPathParams()
@@ -691,7 +738,7 @@ func TestGetHeaders(t *testing.T) {
 	}
 
 	ctx := RequestContext{
-		request: &req,
+		request: req,
 	}
 
 	headers := ctx.GetHeaders()

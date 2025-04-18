@@ -107,7 +107,10 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	// Default response type of text/plain unless overriden in the handler
 	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
 	// Call the handler
-	handler(req, resp)
+	handler(RequestContext{
+		request:  req,
+		response: resp,
+	})
 
 	w.writeResponse(resp, conn)
 }

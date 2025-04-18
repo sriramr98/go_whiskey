@@ -31,6 +31,7 @@ func (r *router) getHandler(path string, method string) (HttpHandler, bool) {
 }
 
 func (r *router) setGlobalRequestHandler(handler HttpHandler) {
+	r.globalHandlerSet = true
 	r.globalRequestHandler = handler
 }
 
