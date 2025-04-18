@@ -67,7 +67,7 @@ func main() {
 	server.Use(AuthMiddleware)
 
 	server.GET("/hello/:name", func(ctx whiskey.Context) error {
-        var queryParams RequestQuery
+		var queryParams RequestQuery
 		if err := ctx.BindQuery(&queryParams); err != nil {
 			// Unable to bind query params to struct
 			ctx.StatusCode(http.StatusInternalServerError)
