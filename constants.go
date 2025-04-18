@@ -1,11 +1,11 @@
 package whiskey
 
 var (
-	ContentTypeJSON string = "application/json"
-	ContentTypeHTML string = "text/html"
-	ContentTypeText string = "text/plain"
-	ContentTypeXML  string = "application/xml"
-	ContentTypeForm string = "application/x-www-form-urlencoded"
+	MimeTypeJSON           string = "application/json"
+	MimeTypeHTML           string = "text/html"
+	MimeTypeText           string = "text/plain"
+	MimeTypeXML            string = "application/xml"
+	MimeTypeFormUrlEncoded string = "application/x-www-form-urlencoded"
 )
 
 var (

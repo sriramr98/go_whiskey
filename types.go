@@ -6,10 +6,12 @@ type RunOpts struct {
 }
 
 type HttpRequest struct {
-	Method  string
-	Path    string
-	Body    []byte
-	Headers map[string]string
+	method      string
+	path        string
+	body        []byte
+	headers     map[string]string
+	queryParams map[string]string
+	pathParams  map[string]string
 }
 
 type HttpResponse struct {

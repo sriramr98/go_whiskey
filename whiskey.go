@@ -91,12 +91,12 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 		return
 	}
 
-	handler, ok := w.router.getHandler(req.Path, req.Method)
+	handler, ok := w.router.getHandler(req.path, req.method)
 	if !ok {
 		handler, ok = w.router.getGlobalRequestHandler()
 		if !ok {
 			//TODO: Send 404 response
-			log.Println("No handler found for path:", req.Path)
+			log.Println("No handler found for path:", req.path)
 			return
 		}
 	}
@@ -105,7 +105,7 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 		headers: make(map[string]string),
 	}
 	// Default response type of text/plain unless overriden in the handler
-	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", ContentTypeText))
+	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
 	// Call the handler
 	handler(req, resp)
 
@@ -184,7 +184,7 @@ func (w Whiskey) writeResponse(resp *HttpResponse, conn net.Conn) {
 
 func parseRequest(requestData []string) (HttpRequest, error) {
 	request := HttpRequest{
-		Headers: make(map[string]string),
+		headers: make(map[string]string),
 	}
 
 	if len(requestData) == 0 {
@@ -199,12 +199,12 @@ func parseRequest(requestData []string) (HttpRequest, error) {
 	if !slices.Contains([]string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete}, protocolParts[0]) {
 		return request, fmt.Errorf("invalid HTTP method")
 	}
-	request.Method = protocolParts[0]
+	request.method = protocolParts[0]
 
 	if !strings.HasPrefix(protocolParts[1], "/") {
 		return request, fmt.Errorf("invalid HTTP path")
 	}
-	request.Path = protocolParts[1]
+	request.path = protocolParts[1]
 
 	// We currently only support HTTP/1.1
 	if protocolParts[2] != "HTTP/1.1" {
@@ -235,7 +235,7 @@ func parseRequest(requestData []string) (HttpRequest, error) {
 		key := strings.TrimSpace(headerParts[0])
 		value := strings.TrimSpace(headerParts[1])
 
-		request.Headers[key] = value
+		request.headers[key] = value
 	}
 
 	// body isn't present, and we reached the end of the request
@@ -246,7 +246,7 @@ func parseRequest(requestData []string) (HttpRequest, error) {
 
 	// The body starts after the headers
 	body := strings.Join(requestData[bodyStartIdx:], "")
-	request.Body = []byte(body)
+	request.body = []byte(body)
 
 	return request, nil
 }
