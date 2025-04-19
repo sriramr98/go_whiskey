@@ -5,12 +5,14 @@ type router struct {
 	handlers             map[string]map[string]HttpHandler // For every path, for every method, a handler
 	globalRequestHandler HttpHandler                       // This gets called if no path is matched
 	globalHandlerSet     bool                              // Indicates if a global handler has been set
+	errorHandler         HttpErrorHandler                  // This gets called if an error occurs
 }
 
 // NewRouter creates a new router instance
 func newRouter() *router {
 	return &router{
-		handlers: make(map[string]map[string]HttpHandler),
+		handlers:     make(map[string]map[string]HttpHandler),
+		errorHandler: defaultErrorHandler,
 	}
 }
 
@@ -37,4 +39,8 @@ func (r *router) setGlobalRequestHandler(handler HttpHandler) {
 
 func (r *router) getGlobalRequestHandler() (HttpHandler, bool) {
 	return r.globalRequestHandler, r.globalHandlerSet
+}
+
+func (r *router) setErrorHandler(handler HttpErrorHandler) {
+	r.errorHandler = handler
 }

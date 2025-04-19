@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+// If we get these content types, the response body will have to be stringified and sent
+var stringContentTypes = []string{
+	MimeTypeHTML,
+	MimeTypeText,
+	MimeTypeJSON,
+	MimeTypeXML,
+}
+
 type Whiskey struct {
 	router *router
 }
@@ -45,6 +53,10 @@ func (w Whiskey) PUT(path string, handler HttpHandler) {
 // DELETE registers a handler for the given path with the HTTP DELETE method.
 func (w Whiskey) DELETE(path string, handler HttpHandler) {
 	w.router.addHandler(path, http.MethodDelete, handler)
+}
+
+func (w Whiskey) GlobalErrorHandler(handler HttpErrorHandler) {
+	w.router.setErrorHandler(handler)
 }
 
 // Run starts the HTTP server and blocks until it is stopped
@@ -97,8 +109,13 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	if !ok {
 		handler, ok = w.router.getGlobalRequestHandler()
 		if !ok {
-			//TODO: Send 404 response
+			resp := &HttpResponse{
+				headers:    make(map[string]string),
+				statusCode: http.StatusNotFound,
+				body:       []byte("Path route not found"),
+			}
 			log.Println("No handler found for path:", req.path)
+			writeResponse(resp, conn)
 			return
 		}
 	}
@@ -108,15 +125,22 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	}
 	// Default response type of text/plain unless overriden in the handler
 	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
-	// Call the handler
-	err = handler(RequestContext{
+	ctx := RequestContext{
 		request:  req,
 		response: resp,
-	})
+	}
+	// Call the handler
+	err = handler(ctx)
 
-	//TODO: Handle error
+	if err != nil {
+		if err := w.router.errorHandler(err, ctx); err != nil {
+			log.Println("Error in error handler:", err)
+			writeResponse(resp, conn)
+			return
+		}
+	}
 
-	w.writeResponse(resp, conn)
+	writeResponse(resp, conn)
 }
 
 func (w Whiskey) readRequest(conn net.Conn) (HttpRequest, error) {
@@ -149,7 +173,7 @@ func (w Whiskey) readRequest(conn net.Conn) (HttpRequest, error) {
 	return parseRequest(lines)
 }
 
-func (w Whiskey) writeResponse(resp *HttpResponse, conn net.Conn) {
+func writeResponse(resp *HttpResponse, conn net.Conn) {
 	var responseLines []string
 
 	if resp.statusCode == 0 {
