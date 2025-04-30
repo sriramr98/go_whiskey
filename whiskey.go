@@ -1,12 +1,12 @@
 package whiskey
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"slices"
 	"strings"
 )
 
@@ -95,6 +95,7 @@ func (w Whiskey) Run(opts RunOpts) {
 // HTTP 1.1 connection handler
 func (w Whiskey) handleConnection(conn net.Conn) {
 	defer func(conn net.Conn) {
+		// TODO: Connection should only close if the header `Connection` has value `close`, else standby for more requests
 		err := conn.Close()
 		if err != nil {
 			log.Println("Error closing connection:", err)
@@ -111,6 +112,7 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 
 	handler, ok := w.router.getHandler(req.path, req.method)
 	if !ok {
+		log.Printf("Handler not found for path %s\n", req.path)
 		handler, ok = w.router.getGlobalRequestHandler()
 		if !ok {
 			resp := &HttpResponse{
@@ -156,9 +158,10 @@ func (w Whiskey) readRequest(reader io.Reader) (HttpRequest, error) {
 	for {
 		n, err := reader.Read(tmp)
 		if err != nil {
-			if err != io.EOF {
-				fmt.Println("Read Error", err)
+			if err == io.EOF {
+				log.Println("Connection Closed...")
 			}
+			log.Printf("Error reading from connection, err: %+v", err)
 			break
 		}
 
@@ -171,76 +174,39 @@ func (w Whiskey) readRequest(reader io.Reader) (HttpRequest, error) {
 	}
 
 	lines := strings.Split(string(data), "\r\n")
-
 	// Parse the request line
 	return parseRequest(lines)
 }
 
 func parseRequest(requestData []string) (HttpRequest, error) {
-	request := HttpRequest{
-		headers: make(map[string]string),
+	protocol, err := extractProtocol(requestData[0])
+	if err != nil {
+		return HttpRequest{}, err
 	}
 
-	if len(requestData) == 0 {
-		return request, fmt.Errorf("invalid HTTP request")
+	if protocol.HTTP1() {
+		return HTTP_1_1_Parser(requestData)
+	} else {
+		return HttpRequest{}, errors.New("unsupported protocol: HTTP/2.0")
+	}
+}
+
+func extractProtocol(protocolLine string) (http.Protocols, error) {
+	protocol := http.Protocols{}
+
+	lineParts := strings.Split(protocolLine, " ")
+	// The protocol line needs to have the format "<METHOD> <PATH> <PROTOCOL>"
+	if len(lineParts) != 3 {
+		return protocol, errors.New("invalid request")
 	}
 
-	// 1st line should contain the format {method} {path} HTTP/1.1
-	protocolParts := strings.Split(strings.TrimSpace(requestData[0]), " ")
-	if len(protocolParts) < 3 {
-		return request, fmt.Errorf("invalid HTTP request format")
+	protocolType := lineParts[2]
+	if protocolType == "HTTP/1.1" {
+		protocol.SetHTTP1(true)
 	}
-	if !slices.Contains([]string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete}, protocolParts[0]) {
-		return request, fmt.Errorf("invalid HTTP method")
+	if protocolType == "HTTP/2.0" {
+		// TODO: Differentiate between encrypted and unencrypted request
+		protocol.SetHTTP2(true)
 	}
-	request.method = protocolParts[0]
-
-	if !strings.HasPrefix(protocolParts[1], "/") {
-		return request, fmt.Errorf("invalid HTTP path")
-	}
-	request.path = protocolParts[1]
-
-	// We currently only support HTTP/1.1
-	if protocolParts[2] != "HTTP/1.1" {
-		return request, fmt.Errorf("invalid HTTP version")
-	}
-
-	// From the second line, it contains headers in the format {key}: {value} until we find an empty line
-
-	bodyStartIdx := 1
-	lastReadIdx := 1
-	for idx, line := range requestData {
-		if idx == 0 {
-			continue
-		}
-		if line == "" {
-			// An empty line indicates the end of headers
-			bodyStartIdx = idx + 1 // The body starts after the empty line
-			break
-		}
-		lastReadIdx = idx
-
-		headerParts := strings.SplitN(line, ":", 2)
-		if len(headerParts) < 2 {
-			// ignore broken headers
-			continue
-		}
-
-		key := strings.TrimSpace(headerParts[0])
-		value := strings.TrimSpace(headerParts[1])
-
-		request.headers[key] = value
-	}
-
-	// body isn't present, and we reached the end of the request
-	// We do lastReadIdx+1 because the header loop starts from 1st index which is 0 inside the loop
-	if lastReadIdx == len(requestData)-1 {
-		return request, nil
-	}
-
-	// The body starts after the headers
-	body := strings.Join(requestData[bodyStartIdx:], "")
-	request.body = []byte(body)
-
-	return request, nil
+	return protocol, nil
 }
