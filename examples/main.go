@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	whiskey2 "github.com/sriramr98/whiskey"
 )
@@ -16,9 +17,8 @@ func main() {
 	whiskey := whiskey2.New()
 	whiskey.GET("/hello", func(ctx whiskey2.Context) error {
 		fmt.Println("Inside GET handler")
-
 		ctx.SetHeader("CustomHeader", "CustomValue")
-		ctx.Bytes(200, whiskey2.MimeTypeJSON, []byte("Hello, World!"))
+		ctx.String(200, "Hello, World!")
 		return nil
 	})
 
@@ -34,6 +34,21 @@ func main() {
 		fmt.Printf("Received body: %+v\n", body)
 		ctx.Json(http.StatusOK, body)
 
+		return nil
+	})
+
+	whiskey.GET("/image", func(ctx whiskey2.Context) error {
+		imgPath, ok := ctx.GetQueryParam("imgPath")
+		if !ok {
+			return whiskey2.NewHTTPErrorWithMessage(http.StatusBadRequest, "QueryParam imgPath not found", whiskey2.BodyTypeJSON)
+		}
+
+		data, err := os.ReadFile(imgPath)
+		if err != nil {
+			return whiskey2.NewHTTPErrorWithMessage(http.StatusBadRequest, "Image not found at Path", whiskey2.BodyTypeJSON)
+		}
+
+		ctx.Bytes(http.StatusOK, whiskey2.MimeTypePNG, data)
 		return nil
 	})
 
