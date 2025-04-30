@@ -25,7 +25,7 @@ type Whiskey struct {
 // Default settings for the Whiskey engine.
 var (
 	PORT = 8080
-	ADDR = "0.0.0.0" //Listens on all IP ranges by default
+	ADDR = "0.0.0.0" // Listens on all IP ranges by default
 )
 
 // New creates a new Whiskey engine instance with default settings.
@@ -57,6 +57,10 @@ func (w Whiskey) DELETE(path string, handler HttpHandler) {
 
 func (w Whiskey) GlobalErrorHandler(handler HttpErrorHandler) {
 	w.router.setErrorHandler(handler)
+}
+
+func (w Whiskey) GlobalRequestHandler(handler HttpHandler) {
+	w.router.setGlobalRequestHandler(handler)
 }
 
 // Run starts the HTTP server and blocks until it is stopped
@@ -100,7 +104,7 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	// Read the request
 	req, err := w.readRequest(conn)
 	if err != nil {
-		//TODO: Send HTTP response back
+		// TODO: Send HTTP response back
 		log.Println("Error reading request:", err)
 		return
 	}
@@ -131,19 +135,18 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	}
 	// Call the handler
 	err = handler(ctx)
-
 	if err != nil {
 		if err := w.router.errorHandler(err, ctx); err != nil {
 			log.Println("Error in error handler:", err)
-			writeResponse(resp, conn)
-			return
+			// Error handler failed, send a generic error response
+			ctx.String(http.StatusInternalServerError, "Internal Server Error")
 		}
 	}
 
 	writeResponse(resp, conn)
 }
 
-func (w Whiskey) readRequest(conn net.Conn) (HttpRequest, error) {
+func (w Whiskey) readRequest(reader io.Reader) (HttpRequest, error) {
 	tmp := make([]byte, 1024)
 
 	// Size is 0 since we don't know how much total data we will read
@@ -151,7 +154,7 @@ func (w Whiskey) readRequest(conn net.Conn) (HttpRequest, error) {
 	length := 0
 
 	for {
-		n, err := conn.Read(tmp)
+		n, err := reader.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
 				fmt.Println("Read Error", err)
@@ -171,46 +174,6 @@ func (w Whiskey) readRequest(conn net.Conn) (HttpRequest, error) {
 
 	// Parse the request line
 	return parseRequest(lines)
-}
-
-func writeResponse(resp *HttpResponse, conn net.Conn) {
-	var responseLines []string
-
-	if resp.statusCode == 0 {
-		resp.statusCode = http.StatusOK
-	}
-	// We only support HTTP/1.1
-	responseLines = append(responseLines, fmt.Sprintf("HTTP/1.1 %d OK", resp.statusCode))
-
-	contentType, ok := resp.headers[HeaderContentType]
-	if !ok {
-		contentType = "text/plain; charset=utf-8"
-	}
-	contentLength := len(resp.body)
-	resp.headers["Content-Length"] = fmt.Sprintf("%d", contentLength)
-
-	for key, value := range resp.headers {
-		responseLines = append(responseLines, fmt.Sprintf("%s: %s", key, value))
-	}
-
-	var body string
-	if contentType == "text/plain" || contentType == "application/json" {
-		body = string(resp.body)
-	} else {
-		var builder strings.Builder
-		for _, b := range resp.body {
-			builder.WriteString(fmt.Sprintf("%d", b))
-		}
-		body = builder.String()
-	}
-
-	response := fmt.Sprintf("%s\r\n\r\n%s", strings.Join(responseLines, "\r\n"), body)
-
-	fmt.Println(response)
-	_, err := conn.Write([]byte(response))
-	if err != nil {
-		return
-	}
 }
 
 func parseRequest(requestData []string) (HttpRequest, error) {

@@ -6,3 +6,6 @@ post:
 
 test:
 	go test ./...
+
+dev:
+	go run examples/main.go

@@ -32,6 +32,7 @@ func (r *router) getHandler(path string, method string) (HttpHandler, bool) {
 	return handler, ok
 }
 
+// setGlobalRequestHandler assigns the request handler that gets called if no paths in the server match the incoming path. It's a default request handler
 func (r *router) setGlobalRequestHandler(handler HttpHandler) {
 	r.globalHandlerSet = true
 	r.globalRequestHandler = handler

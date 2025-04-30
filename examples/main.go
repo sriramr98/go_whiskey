@@ -14,7 +14,6 @@ type BodyType struct {
 
 func main() {
 	whiskey := whiskey2.New()
-
 	whiskey.GET("/hello", func(ctx whiskey2.Context) error {
 		fmt.Println("Inside GET handler")
 
@@ -28,7 +27,6 @@ func main() {
 
 		var body BodyType
 		err := ctx.BindBody(&body)
-
 		if err != nil {
 			return err
 		}
@@ -37,6 +35,11 @@ func main() {
 		ctx.Json(http.StatusOK, body)
 
 		return nil
+	})
+
+	// If not paths match, this will get called
+	whiskey.GlobalRequestHandler(func(ctx whiskey2.Context) error {
+		return whiskey2.NewHttpError(http.StatusNotFound, whiskey2.BodyTypeJSON)
 	})
 
 	whiskey.Run(whiskey2.RunOpts{

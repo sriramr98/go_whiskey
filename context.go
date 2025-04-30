@@ -26,10 +26,13 @@ type Context interface {
 	GetHeaders() map[string]string     // The function will return all the headers
 
 	SetHeader(key string, value string) // The function will set the header for the response.
+
+	URL() string    // The function will return the current path for which the request is being processed.
+	Method() string // The function will return the current HTTP method for the request
 }
 
 type RequestContext struct {
-	*DataStore //This is used as temporary storage for the request. It is not persisted across requests, but persisted across middlewares in a single request
+	*DataStore // This is used as temporary storage for the request. It is not persisted across requests, but persisted across middlewares in a single request
 	request    HttpRequest
 	response   *HttpResponse
 }
@@ -135,4 +138,12 @@ func (r RequestContext) Bytes(statusCode int, contentType string, data []byte) e
 
 func (r RequestContext) SetHeader(key string, value string) {
 	r.response.SetHeader(key, value)
+}
+
+func (r RequestContext) URL() string {
+	return r.request.path
+}
+
+func (r RequestContext) Method() string {
+	return r.request.method
 }
