@@ -27,20 +27,25 @@ func (h HttpError) Error() string {
 }
 
 func NewHttpError(statusCode int, bodyType BodyType) HttpError {
+	return NewHTTPErrorWithMessage(statusCode, http.StatusText(statusCode), bodyType)
+}
+
+func NewHTTPErrorWithMessage(statusCode int, message string, bodyType BodyType) HttpError {
 	var body string
 
 	switch bodyType {
 	case BodyTypeJSON:
-		body = fmt.Sprintf("{\"error\": \"%s\"}", http.StatusText(statusCode))
+		body = fmt.Sprintf("{\"error\": \"%s\"}", message)
 	case BodyTypeString:
 	default:
-		body = http.StatusText(statusCode)
+		body = message
 	}
 
 	return HttpError{
 		StatusCode: statusCode,
 		Body:       body,
 		BodyType:   bodyType,
+		Message:    message,
 	}
 }
 

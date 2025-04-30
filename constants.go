@@ -6,6 +6,8 @@ var (
 	MimeTypeText           string = "text/plain"
 	MimeTypeXML            string = "application/xml"
 	MimeTypeFormUrlEncoded string = "application/x-www-form-urlencoded"
+	MimeTypeJPEG           string = "image/jpeg"
+	MimeTypePNG            string = "image/png"
 )
 
 var (
