@@ -16,7 +16,7 @@ func TestMapToStruct(t *testing.T) {
 	tests := []struct {
 		name      string
 		inputMap  map[string]string
-		output    interface{}
+		output    any
 		expectErr bool
 	}{
 		{

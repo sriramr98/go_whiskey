@@ -57,6 +57,7 @@ func (w Whiskey) GlobalErrorHandler(handler HttpErrorHandler) {
 	w.router.setErrorHandler(handler)
 }
 
+// GlobalRequestHandler handles any requests for which a handler isn't mapped. Ideal for returning custom 404 not found responses
 func (w Whiskey) GlobalRequestHandler(handler HttpHandler) {
 	w.router.setGlobalRequestHandler(handler)
 }

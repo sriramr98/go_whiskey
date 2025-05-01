@@ -26,10 +26,12 @@ func (h HttpError) Error() string {
 	return string(h.Body)
 }
 
+// NewHttpError returns a response in format { "error": "<message_of_status_code>" } if bodyType is json else "<message_of_status_code>". The message_of_status_code is equal to `http.StatusText`
 func NewHttpError(statusCode int, bodyType BodyType) HttpError {
 	return NewHTTPErrorWithMessage(statusCode, http.StatusText(statusCode), bodyType)
 }
 
+// NewHTTPErrorWithMessage will return a response in the format "{ "error": "<message>" }" if bodyType is JSON else "<message>"
 func NewHTTPErrorWithMessage(statusCode int, message string, bodyType BodyType) HttpError {
 	var body string
 
