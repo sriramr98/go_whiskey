@@ -125,9 +125,6 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	resp := &HttpResponse{
 		headers: make(map[string]string),
 	}
-	// Default response type of text/plain unless overriden in the handler
-	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
-	resp.SetHeader(HeaderConnection, "close") // Even if the client wants us to keep the connection alive, we close it
 	ctx := RequestContext{
 		request:  req,
 		response: resp,
@@ -141,6 +138,10 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 			ctx.String(http.StatusInternalServerError, "Internal Server Error")
 		}
 	}
+
+	// Default response type of text/plain unless overriden in the handler
+	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
+	resp.SetHeader(HeaderConnection, "close") // Even if the client wants us to keep the connection alive, we close it
 
 	writeResponse(resp, conn)
 }
