@@ -1,5 +1,10 @@
 package whiskey
 
+import (
+	"bytes"
+	"maps"
+)
+
 type RunOpts struct {
 	Port int
 	Addr string
@@ -12,6 +17,15 @@ type HttpRequest struct {
 	headers     map[string]string
 	queryParams map[string]string
 	pathParams  map[string]string
+}
+
+func (h HttpRequest) Equal(other HttpRequest) bool {
+	return h.method == other.method &&
+		h.path == other.path &&
+		bytes.Equal(h.body, other.body) &&
+		maps.Equal(h.headers, other.headers) &&
+		maps.Equal(h.queryParams, other.queryParams) &&
+		maps.Equal(h.pathParams, other.pathParams)
 }
 
 type HttpResponse struct {

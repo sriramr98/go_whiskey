@@ -1,13 +1,11 @@
 package whiskey
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"strings"
 )
 
 // If we get these content types, the response body will have to be stringified and sent
@@ -173,40 +171,10 @@ func (w Whiskey) readRequest(reader io.Reader) (HttpRequest, error) {
 		}
 	}
 
-	lines := strings.Split(string(data), "\r\n")
 	// Parse the request line
-	return parseRequest(lines)
+	return parseRequest(string(data))
 }
 
-func parseRequest(requestData []string) (HttpRequest, error) {
-	protocol, err := extractProtocol(requestData[0])
-	if err != nil {
-		return HttpRequest{}, err
-	}
-
-	if protocol.HTTP1() {
-		return HTTP_1_1_Parser(requestData)
-	} else {
-		return HttpRequest{}, errors.New("unsupported protocol: HTTP/2.0")
-	}
-}
-
-func extractProtocol(protocolLine string) (http.Protocols, error) {
-	protocol := http.Protocols{}
-
-	lineParts := strings.Split(protocolLine, " ")
-	// The protocol line needs to have the format "<METHOD> <PATH> <PROTOCOL>"
-	if len(lineParts) != 3 {
-		return protocol, errors.New("invalid request")
-	}
-
-	protocolType := lineParts[2]
-	if protocolType == "HTTP/1.1" {
-		protocol.SetHTTP1(true)
-	}
-	if protocolType == "HTTP/2.0" {
-		// TODO: Differentiate between encrypted and unencrypted request
-		protocol.SetHTTP2(true)
-	}
-	return protocol, nil
+func parseRequest(requestData string) (HttpRequest, error) {
+	return HTTP_1_1_Parser(requestData)
 }
