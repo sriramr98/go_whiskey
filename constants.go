@@ -14,6 +14,7 @@ var (
 	HeaderContentType   string = "Content-Type"
 	HeaderContentLength string = "Content-Length"
 	HeaderAccept        string = "Accept"
+	HeaderConnection    string = "Connection"
 )
 
 var (

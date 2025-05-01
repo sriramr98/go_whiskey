@@ -93,7 +93,6 @@ func (w Whiskey) Run(opts RunOpts) {
 // HTTP 1.1 connection handler
 func (w Whiskey) handleConnection(conn net.Conn) {
 	defer func(conn net.Conn) {
-		// TODO: Connection should only close if the header `Connection` has value `close`, else standby for more requests
 		err := conn.Close()
 		if err != nil {
 			log.Println("Error closing connection:", err)
@@ -103,7 +102,6 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	// Read the request
 	req, err := w.readRequest(conn)
 	if err != nil {
-		// TODO: Send HTTP response back
 		log.Println("Error reading request:", err)
 		return
 	}
@@ -129,6 +127,7 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	}
 	// Default response type of text/plain unless overriden in the handler
 	resp.SetHeader(HeaderContentType, fmt.Sprintf("%s; charset=utf-8", MimeTypeText))
+	resp.SetHeader(HeaderConnection, "close") // Even if the client wants us to keep the connection alive, we close it
 	ctx := RequestContext{
 		request:  req,
 		response: resp,
