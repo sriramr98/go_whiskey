@@ -2,7 +2,6 @@ package whiskey
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -78,7 +77,7 @@ func (w Whiskey) Run(opts RunOpts) {
 	}
 	defer ln.Close()
 
-	fmt.Printf("Starting server on %s:%d\n", opts.Addr, opts.Port)
+	log.Printf("Starting server on %s:%d\n", opts.Addr, opts.Port)
 
 	for {
 		// This blocks until a connection is accepted
@@ -101,7 +100,7 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	}(conn)
 
 	// Read the request
-	req, err := w.readRequest(conn)
+	req, err := readRequest(conn)
 	if err != nil {
 		log.Println("Error reading request:", err)
 		return
@@ -145,37 +144,4 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 	resp.SetHeader(HeaderConnection, "close") // Even if the client wants us to keep the connection alive, we close it
 
 	writeResponse(resp, conn)
-}
-
-func (w Whiskey) readRequest(reader io.Reader) (HttpRequest, error) {
-	tmp := make([]byte, 1024)
-
-	// Size is 0 since we don't know how much total data we will read
-	data := make([]byte, 0)
-	length := 0
-
-	for {
-		n, err := reader.Read(tmp)
-		if err != nil {
-			if err == io.EOF {
-				log.Println("Connection Closed...")
-			}
-			log.Printf("Error reading from connection, err: %+v", err)
-			break
-		}
-
-		data = append(data, tmp[:n]...)
-		length += n
-
-		if n < 1024 {
-			break
-		}
-	}
-
-	// Parse the request line
-	return parseRequest(string(data))
-}
-
-func parseRequest(requestData string) (HttpRequest, error) {
-	return HTTP_1_1_Parser(requestData)
 }
