@@ -52,6 +52,22 @@ func main() {
 		return nil
 	})
 
+	whiskey.GET("/api/{id}", func(ctx whiskey2.Context) error {
+		type path struct {
+			Id string `json:"id"`
+		}
+
+		var pathParams path
+		err := ctx.BindPath(&pathParams)
+		if err != nil {
+			return whiskey2.NewHTTPErrorWithMessage(http.StatusBadRequest, "Path Param id not found", whiskey2.BodyTypeJSON)
+		}
+
+		fmt.Println("Got ID " + pathParams.Id)
+		ctx.String(http.StatusOK, pathParams.Id)
+		return nil
+	})
+
 	// If not paths match, this will get called
 	whiskey.GlobalRequestHandler(func(ctx whiskey2.Context) error {
 		return whiskey2.NewHttpError(http.StatusNotFound, whiskey2.BodyTypeJSON)

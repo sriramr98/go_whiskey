@@ -14,7 +14,8 @@ type routeTree struct {
 }
 
 type routeConfig struct {
-	handler HttpHandler
+	handler    HttpHandler
+	pathParams map[string]string
 }
 
 type node struct {
@@ -22,6 +23,7 @@ type node struct {
 	children map[string]*node
 	handlers map[string]routeConfig // For every http method, there can be a handler
 	end      bool                   // denotes if this node specifies the end of a valid route
+	isParam  bool
 }
 
 func newRouteTree() *routeTree {
@@ -56,6 +58,7 @@ func (t *routeTree) insert(path string, method string, config routeConfig) error
 			children: make(map[string]*node),
 			handlers: make(map[string]routeConfig),
 			end:      false,
+			isParam:  isPathParam(pathParts[0]),
 		}
 
 		t.roots[pathParts[0]] = rootNode
@@ -63,6 +66,10 @@ func (t *routeTree) insert(path string, method string, config routeConfig) error
 	if isLastNode {
 		rootNode.end = true
 		rootNode.handlers[method] = config
+	}
+
+	if isPathParam(pathParts[0]) {
+		rootNode.isParam = true
 	}
 
 	if isLastNode {
@@ -79,9 +86,14 @@ func (t *routeTree) insert(path string, method string, config routeConfig) error
 				children: make(map[string]*node),
 				handlers: make(map[string]routeConfig),
 				end:      false,
+				isParam:  isPathParam(pathParts[idx]),
 			}
 
 			currNode.children[pathPart] = childNode
+
+			if isPathParam(pathPart) {
+				rootNode.isParam = true
+			}
 		}
 
 		currNode = childNode
@@ -93,8 +105,8 @@ func (t *routeTree) insert(path string, method string, config routeConfig) error
 	return nil
 }
 
-// getHandler returns the appropriate
-func (t *routeTree) getHandler(path string, method string) (routeConfig, bool) {
+// getConfig returns the appropriate
+func (t *routeTree) getConfig(path string, method string) (routeConfig, bool) {
 	var empty routeConfig
 	if path == "" {
 		return empty, false
@@ -103,15 +115,28 @@ func (t *routeTree) getHandler(path string, method string) (routeConfig, bool) {
 	trimmedPath := strings.TrimPrefix(strings.TrimSuffix(path, "/"), "/")
 	pathParts := strings.Split(trimmedPath, "/")
 
+	pathParams := make(map[string]string)
+
 	current, ok := t.roots[pathParts[0]]
 	if !ok {
-		return empty, false
+		current, ok = t.findPathParam(t.roots)
+		if !ok {
+			return empty, false
+		}
+		pathParams[extractParam(current.key)] = pathParts[0]
 	}
 
 	for idx := 1; idx < len(pathParts); idx++ {
-		current, ok = current.children[pathParts[idx]]
+		children := current.children
+		current, ok = children[pathParts[idx]]
 		if !ok {
-			return empty, false
+			// if there's no exact match, maybe it's a path param
+			current, ok = t.findPathParam(children)
+			if !ok {
+				return empty, false
+			}
+
+			pathParams[extractParam(current.key)] = pathParts[idx]
 		}
 	}
 
@@ -124,5 +149,25 @@ func (t *routeTree) getHandler(path string, method string) (routeConfig, bool) {
 		return empty, ok
 	}
 
+	config.pathParams = pathParams
+
 	return config, true
+}
+
+func (t *routeTree) findPathParam(nodes map[string]*node) (*node, bool) {
+	for _, node := range nodes {
+		if node.isParam {
+			return node, true
+		}
+	}
+
+	return nil, false
+}
+
+func isPathParam(path string) bool {
+	return strings.HasPrefix(path, "{") && strings.HasSuffix(path, "}")
+}
+
+func extractParam(pathPart string) string {
+	return strings.Trim(pathPart, "{}")
 }

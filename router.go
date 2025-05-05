@@ -22,9 +22,9 @@ func (r *router) addHandler(path string, method string, handler HttpHandler) {
 	r.routes.insert(path, method, config)
 }
 
-func (r *router) getHandler(path string, method string) (HttpHandler, bool) {
-	config, ok := r.routes.getHandler(path, method)
-	return config.handler, ok
+func (r *router) getConfig(path string, method string) (routeConfig, bool) {
+	config, ok := r.routes.getConfig(path, method)
+	return config, ok
 }
 
 // setGlobalRequestHandler assigns the request handler that gets called if no paths in the server match the incoming path. It's a default request handler

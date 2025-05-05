@@ -106,7 +106,8 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 		return
 	}
 
-	handler, ok := w.router.getHandler(req.path, req.method)
+	config, ok := w.router.getConfig(req.path, req.method)
+	handler := config.handler
 	if !ok {
 		log.Printf("Handler not found for path %s\n", req.path)
 		handler, ok = w.router.getGlobalRequestHandler()
@@ -120,6 +121,8 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 			writeResponse(resp, conn)
 			return
 		}
+	} else {
+		req.pathParams = config.pathParams
 	}
 
 	resp := &HttpResponse{
