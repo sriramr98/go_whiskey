@@ -14,8 +14,8 @@ type routeTree struct {
 }
 
 type routeConfig struct {
-	handler    HttpHandler
 	pathParams map[string]string
+	handlers   []HttpHandler
 }
 
 type node struct {

@@ -8,4 +8,4 @@ test:
 	go test ./...
 
 dev:
-	go run examples/main.go
+	go run examples/*.go

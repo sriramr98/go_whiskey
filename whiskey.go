@@ -20,9 +20,9 @@ type Whiskey struct {
 }
 
 type Route struct {
-	Path    string
-	Method  string
-	Handler HttpHandler
+	Path     string
+	Method   string
+	Handlers []HttpHandler
 }
 
 // Default settings for the Whiskey engine.
@@ -39,27 +39,28 @@ func New() Whiskey {
 }
 
 // GET registers a handler for the given path with the HTTP GET method.
-func (w Whiskey) GET(path string, handler HttpHandler) {
-	w.router.addHandler(path, http.MethodGet, handler)
+func (w Whiskey) GET(path string, handlers ...HttpHandler) {
+	w.router.addHandler(path, http.MethodGet, handlers)
 }
 
 // POST registers a handler for the given path with the HTTP POST method.
-func (w Whiskey) POST(path string, handler HttpHandler) {
-	w.router.addHandler(path, http.MethodPost, handler)
+func (w Whiskey) POST(path string, handlers ...HttpHandler) {
+	w.router.addHandler(path, http.MethodPost, handlers)
 }
 
 // PUT registers a handler for the given path with the HTTP PUT method.
-func (w Whiskey) PUT(path string, handler HttpHandler) {
-	w.router.addHandler(path, http.MethodPut, handler)
+func (w Whiskey) PUT(path string, handlers ...HttpHandler) {
+	w.router.addHandler(path, http.MethodPut, handlers)
 }
 
 // DELETE registers a handler for the given path with the HTTP DELETE method.
-func (w Whiskey) DELETE(path string, handler HttpHandler) {
-	w.router.addHandler(path, http.MethodDelete, handler)
+func (w Whiskey) DELETE(path string, handlers ...HttpHandler) {
+	w.router.addHandler(path, http.MethodDelete, handlers)
 }
 
-func (w Whiskey) PATCH(path string, handler HttpHandler) {
-	w.router.addHandler(path, http.MethodPatch, handler)
+// PATCH registers a handler for the given path with the HTTP PATCH method.
+func (w Whiskey) PATCH(path string, handlers ...HttpHandler) {
+	w.router.addHandler(path, http.MethodPatch, handlers)
 }
 
 func (w Whiskey) GlobalErrorHandler(handler HttpErrorHandler) {
@@ -74,7 +75,7 @@ func (w Whiskey) GlobalRequestHandler(handler HttpHandler) {
 // ConfigRoutes provides an easily utility to configure routes with a simple data structure
 func (w Whiskey) ConfigRoutes(routes []Route) {
 	for _, route := range routes {
-		w.router.addHandler(route.Path, route.Method, route.Handler)
+		w.router.addHandler(route.Path, route.Method, route.Handlers)
 	}
 }
 
@@ -123,11 +124,11 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 		return
 	}
 
-	config, ok := w.router.getConfig(req.path, req.method)
-	handler := config.handler
-	if !ok {
+	config, validRouteConfig := w.router.getConfig(req.path, req.method)
+	handlers := config.handlers
+	if !validRouteConfig {
 		log.Printf("Handler not found for path %s\n", req.path)
-		handler, ok = w.router.getGlobalRequestHandler()
+		globalHandler, ok := w.router.getGlobalRequestHandler()
 		if !ok {
 			resp := &HttpResponse{
 				headers:    make(map[string]string),
@@ -138,6 +139,7 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 			writeResponse(resp, conn)
 			return
 		}
+		handlers = []HttpHandler{globalHandler}
 	} else {
 		req.pathParams = config.pathParams
 	}
@@ -146,13 +148,24 @@ func (w Whiskey) handleConnection(conn net.Conn) {
 		headers: make(map[string]string),
 	}
 	ctx := RequestContext{
-		request:  req,
-		response: resp,
+		DataStore: NewDataStore(),
+		request:   req,
+		response:  resp,
 	}
-	// Call the handler
-	err = handler(ctx)
-	if err != nil {
-		if err := w.router.errorHandler(err, ctx); err != nil {
+
+	var handleError error
+	if validRouteConfig {
+		for _, handler := range handlers {
+			handleError = handler(&ctx)
+			if handleError != nil {
+				// We break here and let the global error handler take care of handling the error down the line
+				break
+			}
+		}
+	}
+
+	if handleError != nil {
+		if err := w.router.errorHandler(handleError, ctx); err != nil {
 			log.Println("Error in error handler:", err)
 			// Error handler failed, send a generic error response
 			ctx.String(http.StatusInternalServerError, "Internal Server Error")

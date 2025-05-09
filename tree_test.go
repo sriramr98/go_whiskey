@@ -36,7 +36,7 @@ func TestRouteTreeInsert(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			tree := newRouteTree()
-			err := tree.insert(tc.path, tc.method, routeConfig{handler: handlerOne})
+			err := tree.insert(tc.path, tc.method, routeConfig{handlers: []HttpHandler{handlerOne}})
 
 			if tc.shouldError && err == nil {
 				t.Errorf("Expected error for path %s, but got none", tc.path)
@@ -61,7 +61,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Basic route",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "/api/v1/users",
@@ -72,7 +72,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Route with trailing slash",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/api/v1/users/", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/api/v1/users/", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "/api/v1/users",
@@ -83,7 +83,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Root path",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "/",
@@ -94,7 +94,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Non-existent path",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "/api/v2/users",
@@ -105,7 +105,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Method not allowed",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "/api/v1/users",
@@ -116,7 +116,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Path with params",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/users/{id}", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/users/{id}", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "/users/{id}",
@@ -127,7 +127,7 @@ func TestRouteTreeGetConfig(t *testing.T) {
 			name: "Empty path",
 			setupTree: func() *routeTree {
 				tree := newRouteTree()
-				_ = tree.insert("/api", "GET", routeConfig{handler: handlerOne})
+				_ = tree.insert("/api", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 				return tree
 			},
 			path:   "",
@@ -153,9 +153,9 @@ func TestMultipleRoutes(t *testing.T) {
 	tree := newRouteTree()
 
 	// Insert multiple routes
-	_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerOne})
-	_ = tree.insert("/api/v1/users", "POST", routeConfig{handler: handlerTwo})
-	_ = tree.insert("/api/v2/users", "GET", routeConfig{handler: handlerThree})
+	_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
+	_ = tree.insert("/api/v1/users", "POST", routeConfig{handlers: []HttpHandler{handlerTwo}})
+	_ = tree.insert("/api/v2/users", "GET", routeConfig{handlers: []HttpHandler{handlerThree}})
 
 	tests := []struct {
 		path      string
@@ -183,7 +183,7 @@ func TestMultipleRoutes(t *testing.T) {
 			if found {
 				// Execute the handler to verify it's the correct one
 				mockContext := RequestContext{}
-				err := config.handler(mockContext)
+				err := config.handlers[0](mockContext)
 				if err.Error() != tc.handlerID {
 					t.Errorf("Expected handler %s, got %s", tc.handlerID, err.Error())
 				}
@@ -196,9 +196,9 @@ func TestNestedRoutes(t *testing.T) {
 	tree := newRouteTree()
 
 	// Insert nested routes
-	_ = tree.insert("/api", "GET", routeConfig{handler: handlerOne})
-	_ = tree.insert("/api/v1", "GET", routeConfig{handler: handlerTwo})
-	_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerThree})
+	_ = tree.insert("/api", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
+	_ = tree.insert("/api/v1", "GET", routeConfig{handlers: []HttpHandler{handlerTwo}})
+	_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerThree}})
 
 	tests := []struct {
 		path      string
@@ -224,7 +224,7 @@ func TestNestedRoutes(t *testing.T) {
 			if found {
 				// Execute the handler to verify it's the correct one
 				mockContext := RequestContext{}
-				err := config.handler(mockContext)
+				err := config.handlers[0](mockContext)
 				if err.Error() != tc.handlerID {
 					t.Errorf("Expected handler %s, got %s", tc.handlerID, err.Error())
 				}
@@ -237,8 +237,8 @@ func TestPathParams(t *testing.T) {
 	tree := newRouteTree()
 
 	// Insert routes with path parameters
-	_ = tree.insert("/users/{id}", "GET", routeConfig{handler: handlerOne})
-	_ = tree.insert("/posts/{postId}/comments/{commentId}", "GET", routeConfig{handler: handlerTwo})
+	_ = tree.insert("/users/{id}", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
+	_ = tree.insert("/posts/{postId}/comments/{commentId}", "GET", routeConfig{handlers: []HttpHandler{handlerTwo}})
 
 	tests := []struct {
 		path       string
@@ -295,8 +295,8 @@ func TestSlashHandling(t *testing.T) {
 	tree := newRouteTree()
 
 	// Insert routes with and without trailing slashes
-	_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerOne})
-	_ = tree.insert("/api/v2/posts/", "GET", routeConfig{handler: handlerTwo})
+	_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
+	_ = tree.insert("/api/v2/posts/", "GET", routeConfig{handlers: []HttpHandler{handlerTwo}})
 
 	tests := []struct {
 		name      string
@@ -324,7 +324,7 @@ func TestSlashHandling(t *testing.T) {
 			if found {
 				// Execute the handler to verify it's the correct one
 				mockContext := RequestContext{}
-				err := config.handler(mockContext)
+				err := config.handlers[0](mockContext)
 				if err.Error() != tc.handlerID {
 					t.Errorf("Expected handler %s, got %s", tc.handlerID, err.Error())
 				}
@@ -338,8 +338,8 @@ func TestEdgeCases(t *testing.T) {
 		tree := newRouteTree()
 
 		// Insert the same path twice with different methods
-		_ = tree.insert("/api/v1/users", "GET", routeConfig{handler: handlerOne})
-		_ = tree.insert("/api/v1/users", "POST", routeConfig{handler: handlerTwo})
+		_ = tree.insert("/api/v1/users", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
+		_ = tree.insert("/api/v1/users", "POST", routeConfig{handlers: []HttpHandler{handlerTwo}})
 
 		// Verify both handlers exist
 		getConfig, getFound := tree.getConfig("/api/v1/users", "GET")
@@ -352,8 +352,8 @@ func TestEdgeCases(t *testing.T) {
 
 		// Verify they're different handlers
 		mockContext := RequestContext{}
-		getErr := getConfig.handler(mockContext)
-		postErr := postConfig.handler(mockContext)
+		getErr := getConfig.handlers[0](mockContext)
+		postErr := postConfig.handlers[0](mockContext)
 
 		if getErr.Error() == postErr.Error() {
 			t.Errorf("Expected different handlers, got the same: %s", getErr.Error())
@@ -364,7 +364,7 @@ func TestEdgeCases(t *testing.T) {
 		tree := newRouteTree()
 
 		// Insert root path
-		_ = tree.insert("/", "GET", routeConfig{handler: handlerOne})
+		_ = tree.insert("/", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 
 		// Verify it can be retrieved
 		config, found := tree.getConfig("/", "GET")
@@ -376,7 +376,7 @@ func TestEdgeCases(t *testing.T) {
 
 		// Verify it's the correct handler
 		mockContext := RequestContext{}
-		err := config.handler(mockContext)
+		err := config.handlers[0](mockContext)
 		if err.Error() != "handler one called" {
 			t.Errorf("Expected 'handler one called', got %s", err.Error())
 		}
@@ -387,8 +387,8 @@ func TestCaseSensitivity(t *testing.T) {
 	tree := newRouteTree()
 
 	// Insert different case routes
-	_ = tree.insert("/api", "GET", routeConfig{handler: handlerOne})
-	_ = tree.insert("/API", "GET", routeConfig{handler: handlerTwo})
+	_ = tree.insert("/api", "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
+	_ = tree.insert("/API", "GET", routeConfig{handlers: []HttpHandler{handlerTwo}})
 
 	tests := []struct {
 		path      string
@@ -408,7 +408,7 @@ func TestCaseSensitivity(t *testing.T) {
 			}
 
 			mockContext := RequestContext{}
-			err := config.handler(mockContext)
+			err := config.handlers[0](mockContext)
 			if err.Error() != tc.handlerID {
 				t.Errorf("Expected handler %s, got %s", tc.handlerID, err.Error())
 			}
@@ -434,7 +434,7 @@ func BenchmarkInsert(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		for _, path := range paths {
-			_ = tree.insert(path, "GET", routeConfig{handler: handlerOne})
+			_ = tree.insert(path, "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 		}
 	}
 }
@@ -455,7 +455,7 @@ func BenchmarkGetConfig(b *testing.B) {
 	}
 
 	for _, path := range paths {
-		_ = tree.insert(path, "GET", routeConfig{handler: handlerOne})
+		_ = tree.insert(path, "GET", routeConfig{handlers: []HttpHandler{handlerOne}})
 	}
 
 	b.ResetTimer()

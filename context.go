@@ -29,6 +29,16 @@ type Context interface {
 
 	URL() string    // The function will return the current path for which the request is being processed.
 	Method() string // The function will return the current HTTP method for the request
+
+	// The following methods are to store arbitrary key/value pairs for the duration of the request
+	Set(key string, value any)
+	GetString(key string) (string, bool)
+	GetInt(key string) (int, bool)
+	GetBool(key string) (bool, bool)
+	Get(key string) (any, bool)
+	Delete(key string)
+	Clear()
+	GetAll() map[string]Value
 }
 
 type RequestContext struct {

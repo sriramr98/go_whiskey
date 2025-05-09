@@ -29,13 +29,13 @@ func newRouter() *router {
 	}
 }
 
-// AddHandler adds a handler for a given path and method
-func (r *router) addHandler(path string, method string, handler HttpHandler) {
+// AddHandler adds a set of handlers for a given path and method
+func (r *router) addHandler(path string, method string, handlers []HttpHandler) {
 	if !slices.Contains(configurableHttpMethods, method) {
 		// Since route configuration happens before server is started, panic is fine
 		panic("Invalid HTTP method " + method + " configured")
 	}
-	config := routeConfig{handler: handler}
+	config := routeConfig{handlers: handlers}
 	r.routes.insert(path, method, config)
 }
 

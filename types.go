@@ -48,3 +48,5 @@ func (resp *HttpResponse) Send(body []byte) {
 type HttpHandler func(ctx Context) error
 
 type HttpErrorHandler func(err error, ctx Context) error
+
+type Json map[string]any
