@@ -19,6 +19,12 @@ type Whiskey struct {
 	router *router
 }
 
+type Route struct {
+	Path    string
+	Method  string
+	Handler HttpHandler
+}
+
 // Default settings for the Whiskey engine.
 var (
 	PORT = 8080
@@ -52,6 +58,10 @@ func (w Whiskey) DELETE(path string, handler HttpHandler) {
 	w.router.addHandler(path, http.MethodDelete, handler)
 }
 
+func (w Whiskey) PATCH(path string, handler HttpHandler) {
+	w.router.addHandler(path, http.MethodPatch, handler)
+}
+
 func (w Whiskey) GlobalErrorHandler(handler HttpErrorHandler) {
 	w.router.setErrorHandler(handler)
 }
@@ -59,6 +69,13 @@ func (w Whiskey) GlobalErrorHandler(handler HttpErrorHandler) {
 // GlobalRequestHandler handles any requests for which a handler isn't mapped. Ideal for returning custom 404 not found responses
 func (w Whiskey) GlobalRequestHandler(handler HttpHandler) {
 	w.router.setGlobalRequestHandler(handler)
+}
+
+// ConfigRoutes provides an easily utility to configure routes with a simple data structure
+func (w Whiskey) ConfigRoutes(routes []Route) {
+	for _, route := range routes {
+		w.router.addHandler(route.Path, route.Method, route.Handler)
+	}
 }
 
 // Run starts the HTTP server and blocks until it is stopped

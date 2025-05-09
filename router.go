@@ -1,5 +1,18 @@
 package whiskey
 
+import (
+	"net/http"
+	"slices"
+)
+
+var configurableHttpMethods []string = []string{
+	http.MethodGet,
+	http.MethodPost,
+	http.MethodPut,
+	http.MethodPatch,
+	http.MethodDelete,
+}
+
 // Router handles figuring out which handler to be called for a given request
 type router struct {
 	routes               *routeTree
@@ -18,6 +31,10 @@ func newRouter() *router {
 
 // AddHandler adds a handler for a given path and method
 func (r *router) addHandler(path string, method string, handler HttpHandler) {
+	if !slices.Contains(configurableHttpMethods, method) {
+		// Since route configuration happens before server is started, panic is fine
+		panic("Invalid HTTP method " + method + " configured")
+	}
 	config := routeConfig{handler: handler}
 	r.routes.insert(path, method, config)
 }
