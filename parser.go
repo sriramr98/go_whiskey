@@ -63,19 +63,7 @@ func HTTP_1_1_Parser(requestData string) (HttpRequest, error) {
 
 	if len(pathParts) > 1 {
 		queryParamsStr := pathParts[1]
-		if queryParamsStr != "" {
-			params := strings.SplitSeq(queryParamsStr, "&")
-			for param := range params {
-				paramParts := strings.Split(param, "=")
-				value, err := url.QueryUnescape(paramParts[1])
-				if err != nil {
-					log.Printf("Err parsing query param %v\n", err)
-					return HttpRequest{}, err
-				}
-
-				request.queryParams[paramParts[0]] = value
-			}
-		}
+		request.queryParams = parseQueryParams(queryParamsStr)
 	}
 
 	// We currently only support HTTP/1.1
@@ -118,4 +106,25 @@ func HTTP_1_1_Parser(requestData string) (HttpRequest, error) {
 	request.body = []byte(body)
 
 	return request, nil
+}
+
+func parseQueryParams(queryParamsStr string) map[string]string {
+	queryParams := make(map[string]string)
+	if queryParamsStr == "" {
+		return queryParams
+	}
+	params := strings.SplitSeq(queryParamsStr, "&")
+	for param := range params {
+		paramParts := strings.Split(param, "=")
+		value, err := url.QueryUnescape(paramParts[1])
+		if err != nil {
+			log.Printf("Err parsing query param %v\n", err)
+			// Ignore faulty query params
+			continue
+		}
+
+		queryParams[paramParts[0]] = value
+	}
+
+	return queryParams
 }

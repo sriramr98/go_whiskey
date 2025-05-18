@@ -23,7 +23,5 @@ func main() {
 		return whiskey2.NewHttpError(http.StatusNotFound, whiskey2.BodyTypeJSON)
 	})
 
-	whiskey.Run(whiskey2.RunOpts{
-		Port: 8080,
-	})
+	whiskey.Run()
 }

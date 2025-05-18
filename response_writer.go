@@ -3,19 +3,18 @@ package whiskey
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
 
-func writeResponse(resp *HttpResponse, writer io.Writer) {
+func (w *Whiskey) writeResponse(resp *HttpResponse, writer io.Writer) {
 	if resp.statusCode == 0 {
 		resp.statusCode = http.StatusOK
 	}
 
 	// We only support HTTP/1.1
 	if _, err := fmt.Fprintf(writer, "HTTP/1.1 %d %s\r\n", resp.statusCode, http.StatusText(resp.statusCode)); err != nil {
-		log.Printf("Unable to write response.. %+v", err)
+		w.errorLogger.Printf("Unable to write response.. %+v", err)
 		return
 	}
 
@@ -31,7 +30,7 @@ func writeResponse(resp *HttpResponse, writer io.Writer) {
 	// Write the headers to the response stream
 	for key, value := range resp.headers {
 		if _, err := fmt.Fprintf(writer, "%s: %s\r\n", key, value); err != nil {
-			log.Printf("Unable to write response.. %+v", err)
+			w.errorLogger.Printf("Unable to write response.. %+v", err)
 			return
 		}
 	}
@@ -39,6 +38,6 @@ func writeResponse(resp *HttpResponse, writer io.Writer) {
 	// var body string = string(resp.body)
 
 	if _, err := fmt.Fprintf(writer, "\r\n%s", resp.body); err != nil {
-		log.Printf("Unable to write response.. %+v", err)
+		w.errorLogger.Printf("Unable to write response.. %+v", err)
 	}
 }

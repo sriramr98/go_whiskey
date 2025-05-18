@@ -3,12 +3,26 @@ package whiskey
 import (
 	"bytes"
 	"maps"
+	"time"
 )
 
-type RunOpts struct {
-	Port int
-	Addr string
+type Route struct {
+	Path     string
+	Method   string
+	Handlers []HttpHandler
 }
+
+type ServerConfig struct {
+	Port               int
+	Addr               string
+	MaxConcurrency     int
+	MaxHeaderBytes     int
+	MaxRequestBodySize int64
+	ReadTimeout        time.Duration
+	WriteTimeout       time.Duration
+}
+
+type RunOpts struct{}
 
 type HttpRequest struct {
 	method      string
