@@ -44,7 +44,8 @@ func HTTP_1_1_Parser(requestData string) (HttpRequest, error) {
 	if len(protocolParts) < 3 {
 		return request, fmt.Errorf("invalid HTTP request format")
 	}
-	if !slices.Contains([]string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut, http.MethodDelete, http.MethodHead, http.MethodOptions}, protocolParts[0]) {
+
+	if !slices.Contains([]string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut, http.MethodDelete, http.MethodHead, http.MethodOptions}, strings.TrimSpace(protocolParts[0])) {
 		return request, fmt.Errorf("invalid HTTP method")
 	}
 	request.method = protocolParts[0]

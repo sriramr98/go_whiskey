@@ -3,11 +3,17 @@ package whiskey
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
 
 func (w *Whiskey) writeResponse(resp *HttpResponse, writer io.Writer) {
+	if err := writer.(net.Conn).SetWriteDeadline(time.Now().Add(w.config.WriteTimeout)); err != nil {
+		w.errorLogger.Println("Unable to set write deadline", err)
+		return
+	}
+
 	if resp.statusCode == 0 {
 		resp.statusCode = http.StatusOK
 	}

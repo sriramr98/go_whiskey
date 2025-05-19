@@ -30,13 +30,11 @@ var (
 )
 
 var defaultConfig = ServerConfig{
-	Port:               8080,
-	Addr:               "0.0.0.0",
-	MaxConcurrency:     1000,
-	MaxHeaderBytes:     1 << 20,  // 1MB
-	MaxRequestBodySize: 10 << 20, // 10MB
-	ReadTimeout:        10 * time.Second,
-	WriteTimeout:       10 * time.Second,
+	Port:           8080,
+	Addr:           "0.0.0.0",
+	MaxConcurrency: 1000,
+	ReadTimeout:    10 * time.Second,
+	WriteTimeout:   10 * time.Second,
 }
 
 // New creates a new Whiskey engine instance with default settings.
